@@ -14,6 +14,11 @@ def get_titles_from_search_results(filename):
 
     [('Book title 1', 'Author 1'), ('Book title 2', 'Author 2')...]
     """
+    with open filename as f:
+        file = f.read() 
+    soup = BeautifulSoup(file, "html.parser")
+    titles= soup.findall(a, class_= 'title')
+    authors = soup.findall(a, class_="authorName").text
 
     pass
 
@@ -29,10 +34,18 @@ def get_search_links():
     Notice that you should ONLY add URLs that start with "https://www.goodreads.com/book/show/" to 
     your list, and , and be sure to append the full path to the URL so that the url is in the format 
     “https://www.goodreads.com/book/show/kdkd".
+    
 
     """
-
-    pass
+    url = 'https://www.goodreads.com/search?q=fantasy&qid=NwUsLiA2Nc'
+    r = requests.get(url)
+    soup = BeautifulSoup(r.content, 'html.parser')
+    urls = soup.findall(a, class_ = href)[:10]
+    urls2 =[]
+    for url in urls:
+        urls2.append("https://www.goodreads.com"+url)
+    print(urls)
+    return urls2
 
 
 def get_book_summary(book_url):
@@ -101,7 +114,7 @@ def extra_credit(filepath):
 class TestCases(unittest.TestCase):
 
     # call get_search_links() and save it to a static variable: search_urls
-
+    self.search_urls = get_search_links()
 
     def test_get_titles_from_search_results(self):
         # call get_titles_from_search_results() on search_results.htm and save to a local variable
