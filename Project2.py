@@ -17,10 +17,13 @@ def get_titles_from_search_results(filename):
     with open filename as f:
         file = f.read() 
     soup = BeautifulSoup(file, "html.parser")
-    titles= soup.findall(a, class_= 'title')
-    authors = soup.findall(a, class_="authorName").text
-
-    pass
+    books = soup.find_all('tr', itemtype ='http://schema.org/Book' ) # is this right? make sure it encompasses the author
+    l=[]
+    for book in books:
+        title = book.find('a').get('title')
+        author = book.find('a', class_="authorName").text
+        l.append((title,author))
+    return l
 
 
 def get_search_links():
@@ -40,7 +43,9 @@ def get_search_links():
     url = 'https://www.goodreads.com/search?q=fantasy&qid=NwUsLiA2Nc'
     r = requests.get(url)
     soup = BeautifulSoup(r.content, 'html.parser')
-    urls = soup.findall(a, class_ = href)[:10]
+    urls = soup.find_all('a', class_ = 'bookTitle')
+    urls = urls.get('href', None)[:10]
+
     urls2 =[]
     for url in urls:
         urls2.append("https://www.goodreads.com"+url)
@@ -61,8 +66,14 @@ def get_book_summary(book_url):
     You can easily capture CSS selectors with your browser's inspector window.
     Make sure to strip() any newlines from the book title and number of pages.
     """
-
-    pass
+    r = requests.get(book_url)
+    soup = BeautifulSoup(r.content, 'html.parser')
+    title = soup.find('h1',class_ = "gr-h1 gr-h1--serif" ).text 
+    title = title.strip()
+    author = soup.find('a', class_ = 'authorName').text
+    pagenums= soup.find('a', itemprop= 'numberOfPages').text
+    pagenums=int(pagenums.strip())
+    return (title,author,pagenums)
 
 
 def summarize_best_books(filepath):
@@ -76,7 +87,18 @@ def summarize_best_books(filepath):
     ("Fiction", "The Testaments (The Handmaid's Tale, #2)", "https://www.goodreads.com/choiceawards/best-fiction-books-2020") 
     to your list of tuples.
     """
-    pass
+     with open filepath as f:
+        file = f.read() 
+    soup = BeautifulSoup(file, 'html.parser')
+    bestbooks = soup.find_all('div', class_="category clearFix")
+    tuplelist=[]
+    for book in bestbooks:
+        category = book.find('h4', class_ = 'category_copy').text
+        title = book.find('img', class_ = alt)
+        url = book.find('a',class_='href')
+        tuplelist.append((category, title, url))
+
+    return tuplelist
 
 
 def write_csv(data, filename):
@@ -96,10 +118,14 @@ def write_csv(data, filename):
     Book2,Author2
     Book3,Author3
     ......
-
     This function should not return anything.
     """
-    pass
+    headers = "Book title", "Author Name"
+    with open(filename,'w') as file:
+            csv_writer = csv.writer(file, delimiter=',', quotechar = '"')
+            csv_writer.writerow(headers) 
+            for row in data:
+                csv_writer.writerow(row)
 
 
 def extra_credit(filepath):
