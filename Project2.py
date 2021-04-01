@@ -16,16 +16,21 @@ def get_titles_from_search_results(filename):
     """
     f = open(filename)
     file = f.read() 
-    soup = BeautifulSoup(file, "html.parser")
+    soup = BeautifulSoup(file, "lxml")
     f.close()
-    books = soup.find_all('tr', itemtype ='http://schema.org/Book' ) # is this right? make sure it encompasses the author
+    #books = soup.find_all('tr', itemtype ='http://schema.org/Book' )
     l=[]
-    for book in books:
-        title = book.find('a', class_ = "bookTitle").text
-        title = title.strip()
-        author = book.find('a', class_="authorName").text
-        author = str(author.strip())
-        l.append((title,author))
+    titles_list =[]
+    authors_list=[]
+    titles = soup.find_all('a', class_ = "bookTitle")
+    for title in titles:
+        titles_list.append(title.text.strip())
+    authors = soup.find_all('div', class_="authorName__container")
+    for author in authors:
+        authors_list.append(author.text.strip())
+    
+    for i in range(len(titles)):
+        l.append((titles_list[i],authors_list[i]))
     return l
 
 
@@ -45,7 +50,7 @@ def get_search_links():
     """
     url = 'https://www.goodreads.com/search?q=fantasy&qid=NwUsLiA2Nc'
     r = requests.get(url)
-    soup = BeautifulSoup(r.content, 'html.parser')
+    soup = BeautifulSoup(r.content, 'lxml')
     urls = soup.find_all('a', class_ = 'bookTitle')[:10]
     urls2 =[]
     for url in urls:
@@ -91,7 +96,8 @@ def summarize_best_books(filepath):
     """
     f = open(filepath, 'r')
     file = f.read() 
-    soup = BeautifulSoup(file, 'html.parser')
+    soup = BeautifulSoup(file, 'lxml')
+    f.close()
     bestbooks = soup.find_all('div', class_="category clearFix")
     tuplelist=[]
     for book in bestbooks:
@@ -124,10 +130,10 @@ def write_csv(data, filename):
     ......
     This function should not return anything.
     """
-    headers = "Book title", "Author Name"
-    with open(filename,'w') as file:
-            csv_writer = csv.writer(file, delimiter=',', quotechar = '"')
-            csv_writer.writerow(headers) 
+    headers = ["Book title", "Author Name"]
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), filename), 'w') as f:
+            csv_writer = csv.writer(f, delimiter=',')
+            csv_writer.writerow(['Book title', 'Author Name']) 
             for row in data:
                 csv_writer.writerow(row)
     # formatting issues on the rows, how to get them to output like expected 
@@ -218,19 +224,22 @@ class TestCases(unittest.TestCase):
         # call write csv on the variable you saved and 'test.csv'
         write_csv(titles, 'test.csv')
         # read in the csv that you wrote (create a variable csv_lines - a list containing all the lines in the csv you just wrote to above)
-        f = open('test.csv')
-        csv_lines = f.readlines()
-
+        csv_lines = []
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test.csv'), 'r') as f:
+            csvobj= csv.reader(f)
+            for line in csvobj:
+                csv_lines.append(line)
+    
         # check that there are 21 lines in the csv
         self.assertEqual(len(csv_lines), 21)
         # check that the header row is correct
-        self.assertEqual(csv_lines[0].strip(),"Book title,Author Name" )
+        self.assertEqual(csv_lines[0],["Book title","Author Name"] )
         # check that the next row is 'Harry Potter and the Deathly Hallows (Harry Potter, #7)', 'J.K. Rowling'
-        line = 'Harry Potter and the Deathly Hallows (Harry Potter, #7)', 'J.K. Rowling'
-        self.assertEqual(csv_lines[1].strip(),line)
-        last_line = 'Harry Potter: The Prequel (Harry Potter, #0.5)', 'J.K. Rowling'
+        line = ['Harry Potter and the Deathly Hallows (Harry Potter, #7)', 'J.K. Rowling']
+        self.assertEqual(csv_lines[1],line)
+        last_line = ['Harry Potter: The Prequel (Harry Potter, #0.5)', 'Julian Harrison (Introduction)']
         # check that the last row is 'Harry Potter: The Prequel (Harry Potter, #0.5)', 'J.K. Rowling'
-        self.assertEqual(csv_lines[-1].strip(), last_line)
+        self.assertEqual(csv_lines[-1], last_line)
 
 
 if __name__ == '__main__':
